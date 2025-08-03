@@ -27,3 +27,18 @@ poisoned_rag_attack_config:
   num_docs_per_target_query: 5
   num_target_queries: 10
   seed: 42
+
+corrupt_rag_attack_config:
+  llm_attack_config:
+    model: "gpt-4o-mini"
+    model_provider: "openai"
+    temperature: 0.1
+    max_tokens: 300  # Larger for more detailed documents
+  num_target_queries: 10
+  num_words_per_doc: 250  # Larger documents for better stealth
+  seed: 42
+  stealth_factor: 0.8  # High stealth for better evasion
+  content_padding: 100  # Additional obfuscation content
+  attack_method: "AS"  # Choose "AS" or "AK" method
+  max_refinement_attempts: 3  # Max refinement attempts for AK method
+  ak_word_limit: 50  # Word limit for AK refined corpus (V parameter)

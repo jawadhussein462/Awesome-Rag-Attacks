@@ -37,7 +37,7 @@ from langchain.schema import Document
 from loguru import logger
 
 from config.config import RagSystemConfiguration
-from src.prompts import RAG_QA_TEMPLATE, format_rag_qa_prompt
+from src.prompts import RAG_QA_TEMPLATE
 
 
 # Suppress all relevant warnings
@@ -370,7 +370,7 @@ class VictimRAG:
         """Query with provided contexts (similar to PoisonedRAG approach)."""
         combined_context = "\n".join(context_strings)
 
-        formatted_prompt = format_rag_qa_prompt(
+        formatted_prompt = RAG_QA_TEMPLATE.format(
             context=combined_context, question=question
         )
 

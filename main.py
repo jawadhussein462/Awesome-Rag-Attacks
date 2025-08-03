@@ -26,15 +26,16 @@ Configuration is handled through config/config.yaml and can be customized
 for different datasets, models, and attack parameters.
 """
 
-from typing import List, Dict
-import os
+from typing import List
+import argparse
+import os 
 
 from config.config import load_configuration
 
 from src.victim_rag import VictimRAG
 from src.dataset_loader import BeirDatasetLoader
 from src.evaluation import RetrievalEvaluator
-from src.attacks.poisoned_rag_attack import PoisonedRAG
+from src.attacks.attack_factory import get_attack_class
 from src.schemas import RagDataset
 from config.config import (
     RagSystemConfiguration, 
@@ -49,10 +50,10 @@ class RagAttackOrchestrator:
     """
     Main orchestrator for RAG attack experiments.
     
-    This class coordinates all components of the RAG attack framework, providing
-    a high-level interface for running complete attack pipelines. It manages
-    the lifecycle of experiments including dataset loading, RAG system setup,
-    attack generation, and evaluation.
+    This class coordinates all components of the RAG attack framework,
+    providing a high-level interface for running complete attack pipelines.
+    It manages the lifecycle of experiments including dataset loading, RAG
+    system setup, attack generation, and evaluation.
     
     The orchestrator follows a typical experimental workflow:
     1. Initialize all components with their respective configurations
@@ -64,29 +65,34 @@ class RagAttackOrchestrator:
     Attributes:
         rag_config: Configuration for the victim RAG system
         dataset_loader_config: Configuration for dataset loading
-        poisoned_rag_attack_config: Configuration for attack parameters
+        attack_config: Configuration for attack parameters
+        attack_type: String identifier for the attack type
         victim_rag_system: Instance of the victim RAG system
         dataset_loader: Instance of the dataset loader
         evaluator: Instance of the evaluation framework
-        poisoned_rag_attack: Instance of the attack system
+        attack_system: Instance of the attack system
         benchmark_dataset: Loaded dataset with queries and documents
         corpus_documents: Processed documents for the RAG system
     """
+
     def __init__(
         self,
         rag_config: RagSystemConfiguration,
         dataset_loader_config: DatasetLoaderConfiguration,
-        poisoned_rag_attack_config: PoisonedRAGAttackConfiguration
+        attack_config: PoisonedRAGAttackConfiguration,
+        attack_type: str = "poison_rag"
     ):
-
         self.rag_config = rag_config
         self.dataset_loader_config = dataset_loader_config
-        self.poisoned_rag_attack_config = poisoned_rag_attack_config
+        self.attack_config = attack_config
+        self.attack_type = attack_type
 
         self.victim_rag_system = VictimRAG(self.rag_config)
         self.dataset_loader = BeirDatasetLoader(self.dataset_loader_config)
         self.evaluator = RetrievalEvaluator()
-        self.poisoned_rag_attack = PoisonedRAG(self.poisoned_rag_attack_config)
+        self.attack_system = get_attack_class(
+            self.attack_type, self.attack_config
+        )
 
         self.benchmark_dataset: RagDataset = None
         self.corpus_documents: List[Document] = None
@@ -114,10 +120,8 @@ class RagAttackOrchestrator:
 
     def inject_malicious_documents(self, target_queries: List[str]):
         malicious_document_corpus = (
-            self.poisoned_rag_attack
-            .generate_malicious_corpus_for_target_queries(
-                target_queries
-            )
+            self.attack_system
+            .generate_malicious_corpus_for_target_queries(target_queries)
         )
         self.victim_rag_system.insert_text(malicious_document_corpus)
         self.victim_rag_system.setup_retrieval_chain()
@@ -132,33 +136,58 @@ class RagAttackOrchestrator:
         return recall_scores, precision_scores
     
 
-def main():
+def main(attack_type: str = "poison_rag"):
+    """
+    Main function to run RAG attack experiments.
 
-    # os.environ["OPENAI_API_KEY"] = "openai_api_key"
+    Args:
+        attack_type: Type of attack to run. Options: "poison_rag", "corrupt_rag"
+    """
+    # os.environ["OPENAI_API_KEY"] = "your_openai_api_key"
 
     configuration = load_configuration()
     rag_config = configuration.rag_config
     dataset_loader_config = configuration.dataset_loader_config
-    poisoned_rag_attack_config = configuration.poisoned_rag_attack_config
+    attack_config = configuration.poisoned_rag_attack_config
 
-    orchestrator = RagAttackOrchestrator(rag_config, dataset_loader_config, poisoned_rag_attack_config)
+    orchestrator = RagAttackOrchestrator(
+        rag_config, dataset_loader_config, attack_config, attack_type
+    )
     orchestrator.initialize_rag_system()
     target_queries = orchestrator.benchmark_dataset.get_random_queries(
-        seed=orchestrator.poisoned_rag_attack_config.seed,
-        num_queries=orchestrator.poisoned_rag_attack_config.num_target_queries
+        seed=orchestrator.attack_config.seed,
+        num_queries=orchestrator.attack_config.num_target_queries
     )
 
     logger.info(f"Target queries: {target_queries}")
-    logger.info(f"Response before poisoning: {orchestrator.victim_rag_system.answer_multiple_questions(target_queries)}")
+    logger.info(f"Response before poisoning: "
+                f"{orchestrator.victim_rag_system.answer_multiple_questions(target_queries)}")
 
     orchestrator.inject_malicious_documents(target_queries)
 
-    logger.info(f"Response after poisoning: {orchestrator.victim_rag_system.answer_multiple_questions(target_queries)}")
+    logger.info(f"Response after poisoning: "
+                f"{orchestrator.victim_rag_system.answer_multiple_questions(target_queries)}")
 
     # recall_scores, precision_scores = orchestrator.compute_retrieval_metrics()
     # logger.info(f"Recalls: {recall_scores}")
     # logger.info(f"Precisions: {precision_scores}")
 
 
+def parse_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Run RAG attack experiments"
+    )
+    parser.add_argument(
+        "--attack-type",
+        type=str,
+        default="poison_rag",
+        choices=["poison_rag", "corrupt_rag"],
+        help="Type of attack to run (default: poison_rag)"
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    main(args.attack_type)

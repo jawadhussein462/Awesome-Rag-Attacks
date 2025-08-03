@@ -19,6 +19,7 @@ The framework is designed for security research and educational purposes to unde
 
 Current status:
 - ✅ PoisonedRAG attack implementation (complete)
+- ✅ CorruptRAG attack implementation (complete with it's variations CorruptRAG-AS and CorruptRAG-AK))
 - 🔄 Additional attack methods from literature (in progress)
 - 🔄 Enhanced evaluation metrics (planned)
 - 🔄 Defense mechanisms (planned)
@@ -27,10 +28,12 @@ Current status:
 
 ```
 awesome-rag-attacks/
-├── src/                           # Main source code
-│   ├── victim_rag.py             # RAG system implementation  
-│   ├── attacks/                   # Attack implementations
-│   │   └── poisoned_rag_attack.py    # PoisonedRAG attack
+├── src/                              # Main source code
+│   ├── victim_rag.py                 # RAG system implementation  
+│   ├── attacks/                      # Attack implementations
+│   │   ├── poisoned_rag_attack.py    # PoisonedRAG attack
+│   │   ├── corrupt_rag_attack.py     # Corrupt RAG attack
+│   │   └── attack_factory.py         # Attack selection factory
 │   ├── dataset_loader.py         # BEIR dataset handling
 │   ├── evaluation.py             # Evaluation metrics
 │   ├── schemas.py                # Data structures
@@ -44,6 +47,7 @@ awesome-rag-attacks/
 ├── requirements.txt              # Python dependencies
 └── README.md                     # This file
 ```
+
 
 ## 🚀 Quick Start
 
@@ -80,41 +84,23 @@ export OPENAI_API_KEY="your-api-key-here"
 python main.py
 ```
 
+You can also specify which attack to use:
+```bash
+python main.py --attack poisoned_rag  # Use PoisonedRAG attack
+python main.py --attack corrupt_rag   # Use Corrupt RAG attack
+```
+
 This will:
 1. Load and sample a dataset (Natural Questions by default)
 2. Build a RAG system with the benign documents
 3. Generate target queries for attack
-4. Create malicious documents using PoisonedRAG
+4. Create malicious documents using the selected attack method
 5. Insert malicious documents into the RAG system
 6. Compare responses before and after poisoning
 
 #### Configuration
 
-Edit `config/config.yaml` to customize:
-
-```yaml
-rag_config:
-  embedding_config:
-    model: "sentence-transformers/all-MiniLM-L6-v2"
-    provider: "huggingface"
-  chat_config:
-    model: "gpt-3.5-turbo"
-    model_provider: "openai"
-    temperature: 0.1
-    max_tokens: 150
-
-dataset_loader_config:
-  dataset_name: "nq"  # or "msmarco", "hotpotqa"
-  dataset_path: "data/"
-  sample_size: 100
-
-poisoned_rag_attack_config:
-  llm_attack_config:
-    model: "gpt-4o-mini"
-    model_provider: "openai"
-  num_docs_per_target_query: 5
-  num_target_queries: 10
-```
+Edit `config/config.yaml` to customize your configurations
 
 ## 🔧 Components
 
@@ -153,12 +139,12 @@ print(answer)
 Implementation of various attacks against RAG systems from the research literature:
 
 ```python
-from src.attacks.poisoned_rag_attack import PoisonedRAGAttack
-from config.config import PoisonedRAGAttackConfig
+from src.attack_factory import get_attack
 
-# Initialize attack
-attack_config = PoisonedRAGAttackConfig(...)
-attack = PoisonedRAGAttack(attack_config)
+# Use attack factory to select attack method
+attack = get_attack("poisoned_rag", attack_config)
+# Or use corrupt rag attack
+attack = get_attack("corrupt_rag", attack_config)
 
 # Generate malicious documents for target queries
 target_queries = ["What is the capital of France?"]
@@ -167,6 +153,10 @@ malicious_docs = attack.generate_malicious_corpus_for_target_queries(target_quer
 # Inject into RAG system
 rag.insert_text(malicious_docs)
 ```
+
+**Available Attack Methods**:
+- **PoisonedRAG**: Knowledge poisoning through malicious document injection
+- **Corrupt RAG**: Document corruption attack method
 
 
 ### 3. Dataset Management (`src/dataset_loader.py`)
@@ -354,6 +344,7 @@ This framework implements attacks and methodologies from various research papers
 
 **Primary Attack References**:
 - [PoisonedRAG: Knowledge Poisoning Attacks on Retrieval-Augmented Generation](https://arxiv.org/abs/2402.07867)
+- [Practical Poisoning Attacks against Retrieval-Augmented Generation](https://arxiv.org/abs/2504.03957)
 
 **Dataset and Evaluation References**:
 - [BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663)

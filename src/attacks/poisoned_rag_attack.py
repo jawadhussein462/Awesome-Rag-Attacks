@@ -21,8 +21,8 @@ from typing import List
 from config.config import PoisonedRAGAttackConfiguration
 from langchain.chat_models import init_chat_model
 from src.prompts import (
-    format_adversarial_answer_prompt,
-    format_adversarial_document_prompt
+    ADVERSARIAL_INCORRECT_ANSWER_PROMPT,
+    ADVERSARIAL_DOCUMENT_GENERATION_PROMPT
 )
 
 
@@ -73,7 +73,7 @@ class PoisonedRAG:
         Returns:
             A string containing an incorrect but plausible answer
         """
-        adversarial_prompt = format_adversarial_answer_prompt(target_query)
+        adversarial_prompt = ADVERSARIAL_INCORRECT_ANSWER_PROMPT.format(target_query=target_query)
         response = self.adversarial_language_model.invoke(adversarial_prompt)
         return response.content
        
@@ -98,7 +98,7 @@ class PoisonedRAG:
         
         # Create adversarial content that appears relevant but contains
         # wrong information
-        adversarial_document_prompt = format_adversarial_document_prompt(
+        adversarial_document_prompt = ADVERSARIAL_DOCUMENT_GENERATION_PROMPT.format(
             target_query=target_query,
             misleading_answer=misleading_answer,
             num_words=self.attack_configuration.num_words_per_doc
