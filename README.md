@@ -7,7 +7,7 @@ A comprehensive framework for testing and evaluating attacks against Retrieval-A
 This project implements a complete RAG attack research framework that includes:
 
 - **Victim RAG System**: A simplified but functional RAG implementation using LangChain
-- **Multiple RAG Attacks**: Implementation of various attack methodologies from the literature, including PoisonedRAG and other knowledge corruption attacks
+- **Multiple RAG Attacks**: Implementation of various attack methodologies from the literature, including PoisonedRAG, CorruptRAG, and other knowledge corruption attacks
 - **Evaluation Framework**: Comprehensive metrics for assessing attack effectiveness
 - **Dataset Management**: Support for BEIR benchmark datasets (Natural Questions, MS MARCO, HotpotQA)
 
@@ -19,10 +19,19 @@ The framework is designed for security research and educational purposes to unde
 
 Current status:
 - ✅ PoisonedRAG attack implementation (complete)
-- ✅ CorruptRAG attack implementation (complete with it's variations CorruptRAG-AS and CorruptRAG-AK))
+- ✅ CorruptRAG attack implementation (complete with its variations CorruptRAG-AS and CorruptRAG-AK)
 - 🔄 Additional attack methods from literature (in progress)
 - 🔄 Enhanced evaluation metrics (planned)
 - 🔄 Defense mechanisms (planned)
+
+**Available Attack Methods**:
+- **PoisonedRAG**: A knowledge poisoning attack that generates malicious documents using both generator attacks (creating documents with incorrect information) and retrieval attacks (optimizing documents for high retrieval relevance while containing misleading content)
+  - [PoisonedRAG: Knowledge Poisoning Attacks on Retrieval-Augmented Generation](https://arxiv.org/abs/2402.07867)
+- **CorruptRAG**: Template-based poisoning attacks with two variants:
+  - **CorruptRAG-AS (Adversarial Suffix)**: Uses specific templates to construct poisoned text by combining target queries with adversarial templates claiming correct answers are outdated
+  - **CorruptRAG-AK (Adversarial Knowledge)**: Builds on AS by using LLM refinement to make malicious documents more natural and coherent while preserving targeted misinformation
+  - [Practical Poisoning Attacks against Retrieval-Augmented Generation](https://arxiv.org/abs/2504.03957)
+
 
 ## 📁 Project Structure
 
@@ -127,24 +136,21 @@ answer = rag.query("What is machine learning?")
 print(answer)
 ```
 
-**Key Features**:
-- No document chunking (following PoisonedRAG methodology)
-- FAISS vector storage for efficient retrieval
-- Support for dynamic document insertion
-- Configurable embedding and language models
-- Batch querying capabilities
-
 ### 2. RAG Attack Implementations (`src/attacks/`)
 
 Implementation of various attacks against RAG systems from the research literature:
 
 ```python
-from src.attack_factory import get_attack
+from src.attacks.attack_factory import get_attack_class
+from config.config import load_configuration
+
+# Load configuration
+config = load_configuration()
 
 # Use attack factory to select attack method
-attack = get_attack("poisoned_rag", attack_config)
+attack = get_attack_class("poison_rag", config.poisoned_rag_attack_config)
 # Or use corrupt rag attack
-attack = get_attack("corrupt_rag", attack_config)
+attack = get_attack_class("corrupt_rag", config.corrupt_rag_attack_config)
 
 # Generate malicious documents for target queries
 target_queries = ["What is the capital of France?"]
@@ -154,30 +160,25 @@ malicious_docs = attack.generate_malicious_corpus_for_target_queries(target_quer
 rag.insert_text(malicious_docs)
 ```
 
-**Available Attack Methods**:
-- **PoisonedRAG**: Knowledge poisoning through malicious document injection
-- **Corrupt RAG**: Document corruption attack method
-
-
 ### 3. Dataset Management (`src/dataset_loader.py`)
 
 Handles BEIR benchmark datasets:
 
 ```python
-from src.dataset_loader import DatasetLoader
-from config.config import DatasetLoaderConfig
+from src.dataset_loader import BeirDatasetLoader
+from config.config import DatasetLoaderConfiguration
 
 # Load dataset
-config = DatasetLoaderConfig(
+config = DatasetLoaderConfiguration(
     dataset_name="nq",
     dataset_path="data/", 
     sample_size=100
 )
-loader = DatasetLoader(config)
-dataset = loader.load_dataset()
+loader = BeirDatasetLoader(config)
+dataset = loader.load_beir_dataset()
 
 # Convert to documents
-documents = loader.load_documents_from_dataset(dataset)
+documents = loader.create_documents_from_dataset(dataset)
 ```
 
 **Supported Datasets**:
@@ -185,54 +186,36 @@ documents = loader.load_documents_from_dataset(dataset)
 - **MS MARCO (msmarco)**: Microsoft's reading comprehension dataset  
 - **HotpotQA**: Multi-hop reasoning questions
 
-### 4. Evaluation Framework (`src/evaluation.py`)
-
-Comprehensive metrics for attack assessment:
-
-```python
-from src.evaluation import Evaluator
-
-evaluator = Evaluator()
-
-# Evaluate retrieval performance
-recalls, precisions = evaluator.evaluate_retrieval_metrics(
-    retrieved_docs, relevant_docs
-)
-
-print(f"Average Recall: {recalls:.3f}")
-print(f"Average Precision: {precisions:.3f}")
-```
-
 ## 🧪 Running Experiments
 
 ### Experiment 1: Basic Attack Effectiveness
 
 ```python
 # Compare RAG responses before and after attack
-from main import Orchestrator
-from config.config import load_settings
+from main import RagAttackOrchestrator
+from config.config import load_configuration
 
-config = load_settings()
-orchestrator = Orchestrator(
+config = load_configuration()
+orchestrator = RagAttackOrchestrator(
     config.rag_config, 
     config.dataset_loader_config, 
     config.poisoned_rag_attack_config
 )
 
 # Setup RAG with benign documents
-orchestrator.setup_rag()
+orchestrator.initialize_rag_system()
 
 # Generate target queries
-target_queries = orchestrator.rag_dataset.get_random_queries(num_queries=5)
+target_queries = orchestrator.benchmark_dataset.get_random_queries(num_queries=5)
 
 # Get clean responses
-clean_responses = orchestrator.rag.query_list_of_questions(target_queries)
+clean_responses = orchestrator.victim_rag_system.answer_multiple_questions(target_queries)
 
 # Poison the system
-orchestrator.poison_rag(target_queries)
+orchestrator.inject_malicious_documents(target_queries)
 
 # Get poisoned responses  
-poisoned_responses = orchestrator.rag.query_list_of_questions(target_queries)
+poisoned_responses = orchestrator.victim_rag_system.answer_multiple_questions(target_queries)
 
 # Compare results
 for query, clean, poisoned in zip(target_queries, clean_responses, poisoned_responses):
@@ -240,60 +223,6 @@ for query, clean, poisoned in zip(target_queries, clean_responses, poisoned_resp
     print(f"Clean: {clean}")
     print(f"Poisoned: {poisoned}")
     print("---")
-```
-
-### Experiment 2: Retrieval Quality Analysis
-
-```python
-# Analyze how attacks affect retrieval quality
-recalls_before, precisions_before = orchestrator.evaluate_rag()
-print(f"Before Attack - Recall: {recalls_before:.3f}, Precision: {precisions_before:.3f}")
-
-orchestrator.poison_rag(target_queries)
-
-recalls_after, precisions_after = orchestrator.evaluate_rag()  
-print(f"After Attack - Recall: {recalls_after:.3f}, Precision: {precisions_after:.3f}")
-```
-
-## 📊 Evaluation Metrics
-
-The framework provides several evaluation metrics:
-
-- **Retrieval Recall**: Fraction of relevant documents retrieved
-- **Retrieval Precision**: Fraction of retrieved documents that are relevant
-- **Attack Success Rate**: Percentage of queries returning incorrect answers
-- **Response Quality**: Semantic similarity between clean and poisoned responses
-
-## ⚙️ Advanced Configuration
-
-### Custom Models
-
-```yaml
-rag_config:
-  embedding_config:
-    model: "sentence-transformers/all-mpnet-base-v2"  # Better but slower
-    provider: "huggingface"
-  chat_config:
-    model: "gpt-4"  # More capable but expensive
-    model_provider: "openai"
-```
-
-### Attack Parameters
-
-```yaml
-poisoned_rag_attack_config:
-  num_docs_per_target_query: 10      # More attack documents
-  num_target_queries: 5              # Fewer queries to focus on
-  num_words_per_doc: 50              # Longer malicious documents
-  seed: 42                           # Reproducible results
-```
-
-### Dataset Sampling
-
-```yaml
-dataset_loader_config:
-  dataset_name: "hotpotqa"           # Multi-hop reasoning
-  sample_size: 500                   # Larger dataset
 ```
 
 ## 📋 Requirements
