@@ -19,3 +19,5 @@ env/
 Thumbs.db
 
 data/
+uv.lock
+pyproject.toml
