@@ -36,7 +36,7 @@ against Retrieval-Augmented Generation"
 from typing import List
 
 from config.config import CorruptRAGAttackConfiguration
-from langchain.chat_models import init_chat_model
+from .base_attack import BaseRAGAttack
 from src.prompts import (
     CORRUPT_RAG_AS_CORRECT_ANSWER_PROMPT,
     CORRUPT_RAG_AS_MISLEADING_ANSWER_PROMPT,
@@ -45,9 +45,9 @@ from src.prompts import (
     CORRUPT_RAG_AK_REFINEMENT_PROMPT,
     CORRUPT_RAG_AK_VALIDATION_PROMPT
 )
-from loguru import logger
 
-class CorruptRAG:
+
+class CorruptRAG(BaseRAGAttack):
     """
     Implements CorruptRAG-AS and CorruptRAG-AK attacks against RAG systems.
 
@@ -72,13 +72,7 @@ class CorruptRAG:
             corrupt_rag_attack_config: Configuration containing attack 
                 parameters, including LLM settings.
         """
-        self.attack_configuration = corrupt_rag_attack_config
-        self.adversarial_llm_config = (
-            self.attack_configuration.llm_attack_config
-        )
-        self.adversarial_language_model = init_chat_model(
-            **self.adversarial_llm_config.model_dump()
-        )
+        super().__init__(corrupt_rag_attack_config)
 
     def get_correct_answer(self, target_query: str) -> str:
         """

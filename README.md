@@ -148,9 +148,9 @@ from config.config import load_configuration
 config = load_configuration()
 
 # Use attack factory to select attack method
-attack = get_attack_class("poison_rag", config.poisoned_rag_attack_config)
+attack = get_attack_class("poison_rag", config.attack_config)
 # Or use corrupt rag attack
-attack = get_attack_class("corrupt_rag", config.corrupt_rag_attack_config)
+attack = get_attack_class("corrupt_rag", config.attack_config)
 
 # Generate malicious documents for target queries
 target_queries = ["What is the capital of France?"]
@@ -193,13 +193,20 @@ documents = loader.create_documents_from_dataset(dataset)
 ```python
 # Compare RAG responses before and after attack
 from main import RagAttackOrchestrator
+from src.victim_rag import VictimRAG
+from src.dataset_loader import BeirDatasetLoader
+from src.attacks.attack_factory import get_attack_class
 from config.config import load_configuration
 
 config = load_configuration()
+rag = VictimRAG(configuration.rag_config)
+dataset_loader = BeirDatasetLoader(configuration.dataset_loader_config)
+attack = get_attack_class(attack_type, configuration.attack_config)
+
 orchestrator = RagAttackOrchestrator(
-    config.rag_config, 
-    config.dataset_loader_config, 
-    config.poisoned_rag_attack_config
+    rag, 
+    dataset_loader, 
+    attack
 )
 
 # Setup RAG with benign documents

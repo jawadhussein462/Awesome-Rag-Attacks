@@ -11,20 +11,14 @@ Supported attacks:
 """
 
 from typing import Union
-from config.config import (
-    PoisonedRAGAttackConfiguration, 
-    CorruptRAGAttackConfiguration
-)
+from config.config import AttackConfiguration
 from .poisoned_rag_attack import PoisonedRAG
 from .corrupt_rag_attack import CorruptRAG
 
 
 def get_attack_class(
     attack_type: str,
-    config: Union[
-        PoisonedRAGAttackConfiguration,
-        CorruptRAGAttackConfiguration
-    ]
+    config: AttackConfiguration
 ):
     """
     Factory function to create attack instances based on attack type keyword.
@@ -46,13 +40,19 @@ def get_attack_class(
         "poison_rag": PoisonedRAG,
         "corrupt_rag": CorruptRAG
     }
-    
+
+    config_map = {
+        "poison_rag": config.poisoned_rag_attack_config,
+        "corrupt_rag": config.corrupt_rag_attack_config
+    }
+
     if attack_type not in attack_map:
         available_attacks = ", ".join(attack_map.keys())
         raise ValueError(
             f"Unsupported attack type '{attack_type}'. "
             f"Available attacks: {available_attacks}"
         )
-    
+
     attack_class = attack_map[attack_type]
-    return attack_class(config) 
+    config = config_map[attack_type]
+    return attack_class(config)

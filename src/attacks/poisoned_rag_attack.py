@@ -19,14 +19,14 @@ Retrieval-Augmented Generation"
 from typing import List
 
 from config.config import PoisonedRAGAttackConfiguration
-from langchain.chat_models import init_chat_model
+from .base_attack import BaseRAGAttack
 from src.prompts import (
     ADVERSARIAL_INCORRECT_ANSWER_PROMPT,
     ADVERSARIAL_DOCUMENT_GENERATION_PROMPT
 )
+from loguru import logger
 
-
-class PoisonedRAG:
+class PoisonedRAG(BaseRAGAttack):
     """
     Implements PoisonedRAG attacks against RAG systems.
 
@@ -52,9 +52,7 @@ class PoisonedRAG:
             poisoned_rag_attack_config: Configuration containing attack parameters,
                 including LLM settings, number of documents per query, etc.
         """
-        self.attack_configuration = poisoned_rag_attack_config
-        self.adversarial_llm_config = self.attack_configuration.llm_attack_config
-        self.adversarial_language_model = init_chat_model(**self.adversarial_llm_config.model_dump())
+        super().__init__(poisoned_rag_attack_config)
 
     def create_misleading_answer(
         self,

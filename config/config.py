@@ -1,3 +1,4 @@
+from typing import Dict
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
@@ -62,18 +63,20 @@ class CorruptRAGAttackConfiguration(BaseModel):
     num_target_queries: int
     num_words_per_doc: int = 250  # Larger documents for better stealth
     seed: int = 42
-    stealth_factor: float = 0.8  # Controls content obfuscation level
-    content_padding: int = 100  # Additional words for obfuscation
     attack_method: Literal["AS", "AK"] = "AS"  # AS or AK method
     max_refinement_attempts: int = 3  # Max refinement attempts for AK
     ak_word_limit: int = 50  # Word limit for AK refined corpus (V parameter)
 
 
+class AttackConfiguration(BaseModel):
+    poisoned_rag_attack_config: PoisonedRAGAttackConfiguration
+    corrupt_rag_attack_config: CorruptRAGAttackConfiguration
+    
+
 class ApplicationConfiguration(BaseModel):
     rag_config: RagSystemConfiguration
     dataset_loader_config: DatasetLoaderConfiguration
-    poisoned_rag_attack_config: PoisonedRAGAttackConfiguration
-    corrupt_rag_attack_config: CorruptRAGAttackConfiguration
+    attack_config: AttackConfiguration
 
 
 CURRENT_DIRECTORY = Path(__file__).resolve().parent

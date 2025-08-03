@@ -26,25 +26,20 @@ Configuration is handled through config/config.yaml and can be customized
 for different datasets, models, and attack parameters.
 """
 
-from typing import List
+from typing import List, Optional
 import argparse
-import os 
+import os
+
+from loguru import logger
+from langchain.schema import Document
 
 from config.config import load_configuration
-
 from src.victim_rag import VictimRAG
 from src.dataset_loader import BeirDatasetLoader
 from src.evaluation import RetrievalEvaluator
 from src.attacks.attack_factory import get_attack_class
 from src.schemas import RagDataset
-from config.config import (
-    RagSystemConfiguration, 
-    DatasetLoaderConfiguration, 
-    PoisonedRAGAttackConfiguration
-)
-
-from loguru import logger
-from langchain.schema import Document
+from src.attacks.base_attack import BaseRAGAttack
 
 class RagAttackOrchestrator:
     """
@@ -77,22 +72,16 @@ class RagAttackOrchestrator:
 
     def __init__(
         self,
-        rag_config: RagSystemConfiguration,
-        dataset_loader_config: DatasetLoaderConfiguration,
-        attack_config: PoisonedRAGAttackConfiguration,
-        attack_type: str = "poison_rag"
+        rag: VictimRAG,
+        dataset_loader: BeirDatasetLoader,
+        attack: BaseRAGAttack,
+        evaluator: Optional[RetrievalEvaluator] = None,
     ):
-        self.rag_config = rag_config
-        self.dataset_loader_config = dataset_loader_config
-        self.attack_config = attack_config
-        self.attack_type = attack_type
 
-        self.victim_rag_system = VictimRAG(self.rag_config)
-        self.dataset_loader = BeirDatasetLoader(self.dataset_loader_config)
-        self.evaluator = RetrievalEvaluator()
-        self.attack_system = get_attack_class(
-            self.attack_type, self.attack_config
-        )
+        self.victim_rag_system = rag
+        self.dataset_loader = dataset_loader
+        self.evaluator = evaluator
+        self.attack_system = attack
 
         self.benchmark_dataset: RagDataset = None
         self.corpus_documents: List[Document] = None
@@ -134,7 +123,7 @@ class RagAttackOrchestrator:
         recall_scores, precision_scores = self.evaluator.evaluate_retrieval_metrics(retrieved_document_lists, relevant_document_lists)
 
         return recall_scores, precision_scores
-    
+
 
 def main(attack_type: str = "poison_rag"):
     """
@@ -146,17 +135,19 @@ def main(attack_type: str = "poison_rag"):
     # os.environ["OPENAI_API_KEY"] = "your_openai_api_key"
 
     configuration = load_configuration()
-    rag_config = configuration.rag_config
-    dataset_loader_config = configuration.dataset_loader_config
-    attack_config = configuration.poisoned_rag_attack_config
+
+    rag = VictimRAG(configuration.rag_config)
+    dataset_loader = BeirDatasetLoader(configuration.dataset_loader_config)
+    attack = get_attack_class(attack_type, configuration.attack_config)
+    evaluator = RetrievalEvaluator()
 
     orchestrator = RagAttackOrchestrator(
-        rag_config, dataset_loader_config, attack_config, attack_type
+        rag, dataset_loader, attack, evaluator
     )
     orchestrator.initialize_rag_system()
     target_queries = orchestrator.benchmark_dataset.get_random_queries(
-        seed=orchestrator.attack_config.seed,
-        num_queries=orchestrator.attack_config.num_target_queries
+        seed=attack.seed,
+        num_queries=attack.num_target_queries
     )
 
     logger.info(f"Target queries: {target_queries}")
@@ -181,7 +172,7 @@ def parse_args():
     parser.add_argument(
         "--attack-type",
         type=str,
-        default="poison_rag",
+        default="corrupt_rag",
         choices=["poison_rag", "corrupt_rag"],
         help="Type of attack to run (default: poison_rag)"
     )
