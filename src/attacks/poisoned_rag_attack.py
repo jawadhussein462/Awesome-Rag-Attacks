@@ -25,15 +25,16 @@ from src.prompts import (
     format_adversarial_document_prompt
 )
 
+
 class PoisonedRAG:
     """
     Implements PoisonedRAG attacks against RAG systems.
-    
+
     This class generates malicious documents designed to mislead RAG systems
     when specific target queries are made. The attack uses a language model
     to create adversarial content that appears relevant but contains incorrect
     information.
-    
+
     Attributes:
         attack_configuration: Configuration for the attack parameters
         llm_attack_config: Configuration for the language model used in attacks

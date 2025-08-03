@@ -1,17 +1,27 @@
 # Awesome RAG Attacks
 
-A comprehensive framework for testing and evaluating attacks against Retrieval-Augmented Generation (RAG) systems, with a focus on PoisonedRAG attack methodologies.
+A comprehensive framework for testing and evaluating attacks against Retrieval-Augmented Generation (RAG) systems, implementing various attack methodologies from the research literature.
 
 ## 🎯 Overview
 
 This project implements a complete RAG attack research framework that includes:
 
 - **Victim RAG System**: A simplified but functional RAG implementation using LangChain
-- **PoisonedRAG Attacks**: Implementation of poisoning attacks against RAG systems
+- **Multiple RAG Attacks**: Implementation of various attack methodologies from the literature, including PoisonedRAG and other knowledge corruption attacks
 - **Evaluation Framework**: Comprehensive metrics for assessing attack effectiveness
 - **Dataset Management**: Support for BEIR benchmark datasets (Natural Questions, MS MARCO, HotpotQA)
 
-The framework is designed for security research and educational purposes to understand vulnerabilities in RAG systems.
+The framework is designed for security research and educational purposes to understand vulnerabilities in RAG systems and implement the growing body of research on RAG attacks.
+
+## 🚧 Development Status
+
+**This repository is under active development.** Our goal is to implement a comprehensive collection of RAG attacks from the research literature. We are continuously working to expand the framework with additional attack methodologies from published papers and improvements to existing implementations.
+
+Current status:
+- ✅ PoisonedRAG attack implementation (complete)
+- 🔄 Additional attack methods from literature (in progress)
+- 🔄 Enhanced evaluation metrics (planned)
+- 🔄 Defense mechanisms (planned)
 
 ## 📁 Project Structure
 
@@ -138,9 +148,9 @@ print(answer)
 - Configurable embedding and language models
 - Batch querying capabilities
 
-### 2. PoisonedRAG Attack (`src/attacks/poisoned_rag_attack.py`)
+### 2. RAG Attack Implementations (`src/attacks/`)
 
-Implementation of attacks against RAG systems:
+Implementation of various attacks against RAG systems from the research literature:
 
 ```python
 from src.attacks.poisoned_rag_attack import PoisonedRAGAttack
@@ -158,10 +168,6 @@ malicious_docs = attack.generate_malicious_corpus_for_target_queries(target_quer
 rag.insert_text(malicious_docs)
 ```
 
-**Attack Components**:
-- **Generator Attack**: Creates documents with incorrect answers
-- **Retrieval Attack**: Optimizes documents for high retrieval relevance
-- **Configurable Parameters**: Control document count, word limits, etc.
 
 ### 3. Dataset Management (`src/dataset_loader.py`)
 
@@ -315,13 +321,15 @@ See `requirements.txt` for complete list.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Areas for improvement:
+Contributions are welcome! Priority areas for development:
 
-- **Additional Attack Methods**: Implementation of other RAG attacks
-- **Defense Mechanisms**: Methods to detect and prevent attacks  
-- **Evaluation Metrics**: More sophisticated assessment methods
+- **RAG Attack Methods**: Implementation of attacks from recent research papers
+- **Defense Mechanisms**: Methods to detect and prevent various attacks  
+- **Evaluation Metrics**: More sophisticated assessment methods for different attack types
 - **Model Support**: Integration with additional LLM providers
 - **Performance**: Optimization for larger datasets
+
+We especially welcome implementations of new attack methods from the literature. Please ensure any new attacks include proper attribution to the original research.
 
 ## ⚠️ Ethical Considerations
 
@@ -342,9 +350,15 @@ MIT License - see LICENSE file for details.
 
 ## 📚 References
 
-Based on research from:
+This framework implements attacks and methodologies from various research papers:
+
+**Primary Attack References**:
 - [PoisonedRAG: Knowledge Poisoning Attacks on Retrieval-Augmented Generation](https://arxiv.org/abs/2402.07867)
+
+**Dataset and Evaluation References**:
 - [BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663)
+
+*Additional references will be added as more attack methods are implemented from the literature.*
 
 ## 🆘 Support
 
