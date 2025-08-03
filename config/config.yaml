@@ -1,0 +1,29 @@
+rag_config:
+  embedding_config:
+    model: "sentence-transformers/all-MiniLM-L6-v2"
+    provider: "huggingface"
+  chat_config:
+    model: "gpt-3.5-turbo"
+    model_provider: "openai"
+    temperature: 0.1
+    max_tokens: 150
+  processing_params:
+      max_length: 512  # Token limit for document truncation
+      top_k: 5
+      seed: 42
+  save_path: "rag_path/"
+
+dataset_loader_config:
+  dataset_name: "nq"
+  dataset_path: "data/"
+  sample_size: 100
+
+poisoned_rag_attack_config:
+  llm_attack_config:
+    model: "gpt-4o-mini"
+    model_provider: "openai"
+    temperature: 0.1
+    max_tokens: 150
+  num_docs_per_target_query: 5
+  num_target_queries: 10
+  seed: 42
